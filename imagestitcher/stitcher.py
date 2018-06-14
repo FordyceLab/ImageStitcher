@@ -272,7 +272,7 @@ class FileHandler:
             pc = deepcopy(paramTemplate)
             pc.exposure = exp
             pc.dims = dims
-            rasters.append(Raster(images, pc))
+            rasters.append(FlatRaster(images, pc))
         return RasterSet(set(rasters))
     
 
@@ -305,6 +305,7 @@ class FileHandler:
 
 
 
+
 class Raster:
     def __init__(self, imageRefs, params):
         """
@@ -322,32 +323,6 @@ class Raster:
         """
         self.imageRefs = imageRefs
         self.params = params
-
-
-    def fetchImages(self):
-        """
-        Fetches (loads into memory) and rotates images (if indicated by raster parameters)
-
-        Arguments:
-            None
-
-        Returns:
-            None
-
-        """
-        r = self.params.rotation
-    
-        rotationParams = {'resize': False, 'clip': True, 'preserve_range': True}
-        rotateImage = lambda i: transform.rotate(i, r, **rotationParams).astype('uint16')
-        
-        readImage = lambda i: io.imread(i)
-        images = [readImage(i) for i in self.imageRefs]
-        
-        if r:
-            images = [rotateImage(i) for i in images]
-        
-        self.images = images
-
 
     def applyFF(self):
         """
@@ -463,6 +438,78 @@ class Raster:
         outDir = os.path.join(stitchDir, rasterName)
         external.tifffile.imsave(outDir, stitchedRaster)
         logging.info('Stitching Complete')
+
+
+
+
+class FlatRaster(Raster):
+    def fetchImages(self):
+        """
+        Fetches (loads into memory) and rotates images (if indicated by raster parameters)
+
+        Arguments:
+            None
+
+        Returns:
+            None
+
+        """
+        r = self.params.rotation
+    
+        rotationParams = {'resize': False, 'clip': True, 'preserve_range': True}
+        rotateImage = lambda i: transform.rotate(i, r, **rotationParams).astype('uint16')
+        
+        readImage = lambda i: io.imread(i)
+        images = [readImage(i) for i in self.imageRefs]
+        
+        if r:
+            images = [rotateImage(i) for i in images]
+        
+        self.images = images
+
+
+
+class StackedRaster(Raster):
+    def __init__(self, imageRefs, stackIndices, params):
+        """
+
+        Arguments:
+        
+        Returns:
+            None
+
+        """
+        super().__init__(imageRefs, stackIndices)
+        self.stackIndices = stackIndices
+
+
+    def fetchImages(self):
+        """
+        Fetches (loads into memory) and rotates images (if indicated by raster parameters)
+
+        Arguments:
+            None
+
+        Returns:
+            None
+
+        """
+        r = self.params.rotation
+    
+        rotationParams = {'resize': False, 'clip': True, 'preserve_range': True}
+        rotateImage = lambda i: transform.rotate(i, r, **rotationParams).astype('uint16')
+        
+        readImage = lambda i: io.MultiImage(i[1])i[0] #Second elem is ref, first is stack no.
+        images = [readImage(i) for i in zip(self.stackIndices self.imageRefs)]
+        
+        if r:
+            images = [rotateImage(i) for i in images]
+        
+        self.images = images
+
+
+
+
 
 
 class RasterSet:
