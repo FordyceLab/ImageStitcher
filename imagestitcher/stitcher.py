@@ -19,15 +19,17 @@ from copy import deepcopy
 from datetime import datetime
 
 # Scientific Data Structures and Plotting
+from tqdm import tqdm
 import numpy as np
 import pandas as pd
 from matplotlib import pyplot as pl
 from skimage import io, transform, external
 
 
-channels = {'1pbp', '2bf', '3dapi', '4egfp', '5cy5'}
+
 
 class StitchingSettings:
+    channels = {'1pbp', '2bf', '3dapi', '4egfp', '5cy5'}
     ffPaths = None
     ffParams = None
     ffImages = None
@@ -51,10 +53,10 @@ class StitchingSettings:
         StitchingSettings.ffImages = self.ffImages = self.readFFImages()
         StitchingSettings.ffParams = self.ffParams = ffParams
         StitchingSettings.tileDim = self.tileDimensions = tileDim
-        if setupNum != 2: 
-            StitchingSettings.rasterPattern = (True, False)
-        else:
+        if setupNum == 2: 
             StitchingSettings.rasterPattern = (False, True)
+        else:
+            StitchingSettings.rasterPattern = (True, False)
         self.initializeLogger()
 
 
@@ -112,7 +114,8 @@ class StitchingSettings:
             fig = pl.imshow(image, cmap = 'gray', vmin = vmin, vmax = vmax)
             cbar = pl.colorbar()
             cbar.ax.set_ylabel('RFU')
-            pl.suptitle('{} FF Correction Image'.format(channel))
+            pl.title('{} FF Correction Image'.format(channel), weight = 'bold')
+            pl.axis('off')
             pl.show()
 
 
@@ -127,7 +130,8 @@ class StitchingSettings:
             None
         """
         logfmt = '%(asctime)s %(levelname)-8s %(message)s'
-        logging.basicConfig(format=logfmt, level=logging.DEBUG, datefmt='%y-%m-%d %H:%M:%S')
+        logging.basicConfig(format=logfmt, level=logging.INFO, datefmt='%y-%m-%d %H:%M:%S')
+        logging.captureWarnings(True)
 
 
 class RasterParams:
@@ -152,18 +156,22 @@ class RasterParams:
 
         """
         self.root = root
-        self.parent = pathlib.Path(root).parents[0]
+        self.parent = list(pathlib.Path(root).parents)[0]
         self.source = source #ipnb or mm
-        self.size = StitchingSettings.tileDim
+        self.size = deepcopy(StitchingSettings.tileDim)
         self.dims = None
         self.overlap = overlap
         self.exposure = exposure
         self.channel = channel
         self.setup = setup
         self.rotation = rotation
-        self.acquiOri = StitchingSettings.rasterPattern
+        self.acquiOri = deepcopy(StitchingSettings.rasterPattern)
         self.groupFeature = groupFeature
         self.autoFF = autoFF
+
+    def updateRoot(self, newroot):
+        self.root = newroot
+        self.parent = list(pathlib.Path(newroot).parents)[0]
 
 
 
@@ -191,16 +199,16 @@ class FileHandler:
             acquiTime =  datetime.strptime(chipAcqTime[0], '%Y%m%d-%H%M%S')
             return acquiTime
         
-        getRasterFolders = lambda f: (f, getTime(f.name), self.parseFolder(f))
+        getRasterFolders = lambda f: (f, getTime(f.name), FileHandler.parseFolder(f))
         rasterfolders = [getRasterFolders(f) for f in subfolders]
 
         rasters = set
         for subfolder, time, imageSet in rasterfolders:
             pt = deepcopy(paramTemplate)
             pt.groupFeature = time
-            pt.root = subfolder
-            dims, exposuresImages = self.readImages(imageSet, 'paths') #Grab the raster dimensions
-            rasters = rasters.union(self.makeRasters(pt, exposuresImages, dims).rasters)
+            pt.updateRoot(subfolder)
+            dims, exposuresImages = FileHandler.readImages(imageSet, 'paths') #Grab the raster dimensions
+            rasters = rasters.union(FileHandler.makeRasters(pt, exposuresImages, dims).rasters)
         return KineticImaging(path, rasters)
 
 
@@ -219,12 +227,12 @@ class FileHandler:
 
         """
 
-        imageSet = self.parseFolder(path)
-        dims, exposuresImages = self.readImages(imageSet, 'paths')
-        return self.makeRasters(paramTemplate, exposuresImages, dims)
+        imageSet = FileHandler.parseFolder(path)
+        dims, exposuresImages = FileHandler.readImages(imageSet, 'paths')
+        return FileHandler.makeRasters(paramTemplate, exposuresImages, dims)
 
-
-    def parseFolder(self, path):
+    @staticmethod
+    def parseFolder(path):
         """
         I-Python Specific: Parses a folder containing a single channel of rastered images
         (can contain multiple exposure times) and generates a DataFrame of indexed 
@@ -253,8 +261,8 @@ class FileHandler:
         image['exp'] = image.indexes.apply(lambda i: int(i[2]))
         return image.sort_values(['x', 'y']).reset_index(drop = True).set_index('exp')
 
-
-    def makeRasters(self, paramTemplate, exposuresImages, dims):
+    @staticmethod
+    def makeRasters(paramTemplate, exposuresImages, dims):
         """
         I-Python Specific: Generates a RasterSet from a DataFrame of indexed rastered image paths.
         
@@ -275,8 +283,8 @@ class FileHandler:
             rasters.append(FlatRaster(images, pc))
         return RasterSet(set(rasters))
     
-
-    def readImages(self, df, feature):
+    @staticmethod
+    def readImages(df, feature):
         """
         I-Python Specific: Extracts a raster worth of image path, in proper raster order, from a folder 
         record generated by parseFolder
@@ -391,9 +399,10 @@ class Raster:
 
         tiles = self.images
         if (self.params.autoFF 
-            and self.params.channel in StitchingSettings.ffParams 
+            and self.params.channel in StitchingSettings.ffParams.keys()
             and self.params.exposure in StitchingSettings.ffParams[self.params.channel]):
             tiles = self.ffCorrectedImages = self.applyFF()
+            logging.info('Flat-Field Corrected Image | Ch: {}, Exp: {}'.format(self.params.channel, self.params.exposure))
 
         trimmedTiles = [tile[border, border] for tile in tiles] #Trim
         tileArray = np.asarray(trimmedTiles) #Make ndarray
@@ -431,15 +440,19 @@ class Raster:
         stitchedRaster = self.stitch(method = method)
         
         features = [self.params.exposure, self.params.channel, self.params.groupFeature]
-        rasterName = 'StitchedImage_{}_{}_{}.tif'.format(*features)
+        rasterName = 'StitchedImg_{}_{}_{}.tif'.format(*features)
         
         stitchDir = pathlib.Path(os.path.join(self.params.parent, outPathName))
         stitchDir.mkdir(exist_ok = True)
         outDir = os.path.join(stitchDir, rasterName)
         external.tifffile.imsave(outDir, stitchedRaster)
-        logging.info('Stitching Complete')
+        logging.debug('Stitching Complete')
 
+    def __lt__(self, other):
 
+        selfstem = pathlib.Path(self.imageRefs[0]).stem
+        otherstem = pathlib.Path(other.imageRefs[0]).stem
+        return selfstem < otherstem
 
 
 class FlatRaster(Raster):
@@ -494,18 +507,7 @@ class StackedRaster(Raster):
             None
 
         """
-        r = self.params.rotation
-    
-        rotationParams = {'resize': False, 'clip': True, 'preserve_range': True}
-        rotateImage = lambda i: transform.rotate(i, r, **rotationParams).astype('uint16')
-        
-        readImage = lambda i: io.MultiImage(i[1])i[0] #Second elem is ref, first is stack no.
-        images = [readImage(i) for i in zip(self.stackIndices self.imageRefs)]
-        
-        if r:
-            images = [rotateImage(i) for i in images]
-        
-        self.images = images
+        return
 
 
 
@@ -525,7 +527,8 @@ class RasterSet:
         Basic stitching and export of raster set
         """
         while self.rasters:
-            self.rasters.pop().exportStitch(**args)
+            r = self.rasters.pop()
+            r.exportStitch(**args)
 
 
 
@@ -550,7 +553,6 @@ class RasterGroup:
             self.raster.pop().stitch()
 
 
-
 class KineticImaging(RasterGroup):
     def order(self):
         """
@@ -569,7 +571,7 @@ class KineticImaging(RasterGroup):
         self.orderedRasters = {raster.params.groupFeature-min(sortedTimes):raster for raster in self.rasters}
 
 
-    def exportStitch(self, method = 'cut', outPathName = 'StitchedImages2'):
+    def exportStitch(self, method = 'cut', outPathName = 'StitchedImages'):
         """
         Stitches and exports each of the rasters, appending the raster time onto the filename
 
@@ -581,12 +583,15 @@ class KineticImaging(RasterGroup):
             None
 
         """
-        for dt, raster in self.orderedRasters.items():
+        p = pathlib.Path(self.root)
+        pathstem = p.stem
+        pathparent_stem =  pathlib.Path(p.parent).stem
+        for dt, raster in tqdm(self.orderedRasters.items(), desc = 'Stitching Kinetics | {}'.format(pathparent_stem)):
             time = dt.total_seconds()
             stitchedRaster = raster.stitch(method = method)
             
             features = [raster.params.exposure, raster.params.channel, int(time)]
-            rasterName = 'StitchedImage_{}_{}_{}.tif'.format(*features)
+            rasterName = 'StitchedImg_{}_{}_{}.tif'.format(*features)
             
 
             stitchDir = pathlib.Path(os.path.join(self.root, outPathName))
@@ -595,8 +600,8 @@ class KineticImaging(RasterGroup):
             external.tifffile.imsave(outDir, stitchedRaster)
 
             mp = {'t': time, 'ch':raster.params.channel, 'ex':raster.params.exposure}
-            logging.info('Stitch Saved: (Time: {t}, Ch: {ch}, Ex: {ex})'.format(**mp))
-        logging.info('Kinetic Stitches Complete')
+            logging.debug('Stitch Saved: (Time: {t}, Ch: {ch}, Ex: {ex})'.format(**mp))
+        logging.debug('Kinetic Stitches Complete')
 
 
 
@@ -632,7 +637,9 @@ class BackgroundImages:
             None
 
         """
-
+        k = (index, channel, exposure)
+        if k in self.images.keys():
+            logging.warn('Background image with features {} already exists. Overwriting...'.format(k))
         self.images[(index, channel, exposure)] = io.imread(path)
 
 
@@ -652,7 +659,7 @@ class BackgroundImages:
         del(self.images[(index, channel, exposure)])
 
 
-    def substractBackground(self, targetImagePath, targetindex, targetchannel, targetexposure, prefix = 'BGSubstracted_'):
+    def subtractBackground(self, targetImagePath, targetindex, targetchannel, targetexposure, prefix = 'BGSubtracted_'):
         """
         Subtracts a background image from a target image of matching index, channel, and exposure.
         Resulting images are prefixed with an optional prefix, typically 'BGSubtracted_'
@@ -669,22 +676,23 @@ class BackgroundImages:
 
 
         """
-        logging.info('Background Substrating Stitch: (Ch: {ch}, Ex: {ex})'.format(**mp))
+        mp = {'ch': targetchannel, 'ex': targetexposure, 'i': targetindex}
+        logging.info('Background Subtracting | Ch: {ch}, Ex: {ex}, Index: {i}'.format(**mp))
         imgDir = pathlib.Path(targetImagePath)
         target = io.imread(imgDir)
 
-        bgImage = self.image[(targetindex, targetchannel, targetexposure)]
-        bgsub = np.subtract(target, bgImage)
+        bgImage = self.images[(targetindex, targetchannel, targetexposure)]
+        bgsub = np.subtract(target.astype('float') , bgImage.astype('float'))
         bgsubclipped = np.clip(bgsub, 0, 65535).astype('uint16') 
         
-        outPath = os.path.join(tp.parents[0], '{}{}'.format(prefix, imgDir.name))
+        outPath = os.path.join(imgDir.parents[0], '{}{}'.format(prefix, imgDir.name))
         external.tifffile.imsave(outPath, bgsubclipped)
 
-        mp = {'ch': targetchannel, 'ex': targetexposure}
-        logging.info('Background Subtraction Complete')
+        
+        logging.debug('Background Subtraction Complete')
 
 
-    def walkAndBGSubtract(self, path, index, channel):
+    def walkAndBGSubtract(self, path, index, channel, manualExposure = None):
         """
         Walks a directory structure, find images to background subtract, and executes subtraction
 
@@ -698,15 +706,18 @@ class BackgroundImages:
 
         """
 
-        correctable = lambda f: channel in f and 'StitchedImage' in f and not 'BGSubtracted' in f
+        correctable = lambda f: (channel in f) and ('StitchedImage' in f or 'StitchedImg' in f) and not ('BGSubtracted' in f)
         parse = lambda f: tuple(f.split('.')[0].split('_')[-3:])
         
         for root, dirs, files in os.walk(path):
             if 'StitchedImages' in root:
-                toCorrect = {parse(f):f for f in files if correctable(f)}
+                toCorrect = {parse(f):os.path.join(root, f) for f in files if correctable(f)}
                 for params, file in toCorrect.items():
                     exposure, channel, feature = params
-                    self.substractBackground(file, index, channel, exposure)
+                    if manualExposure:  # in case filenames corrupted
+                        exposure = manualExposure
+                    self.subtractBackground(file, index, channel, int(exposure))
+
 
 
 ########## Standard scripts ##########
@@ -717,7 +728,7 @@ def stitchImage(path, params):
     """
 
     mp = {'ch': params.channel, 'ex': params.exposure, 'o':params.overlap, 'r':params.rotation}
-    startmessage = 'Stitching Folder (Ch: {ch}, Exp: {ex}, Overlap: {o}, Rot: {r})'.format(**mp)
+    startmessage = 'Stitching images | Ch: {ch}, Exp: {ex}, Overlap: {o}, Rot: {r}'.format(**mp)
     logging.info(startmessage)
     fh = FileHandler()
     raster = fh.parseSingleFolder(params, path)
@@ -731,7 +742,7 @@ def stitchKinetics(path, params):
     """
 
     startmessage = 'Starting Kinetic Stitch'
-    logging.info(startmessage)
+    logging.debug(startmessage)
     fh = FileHandler()
     k = fh.parseKineticFolder(params, path) #Returns KineticImaging
     k.order()
@@ -752,10 +763,10 @@ def walkAndStitch(path, params, stitchtype = 'kinetic'):
 
     """
 
-    global channels
+    channels = StitchingSettings.channels
     for root, dirs, files in os.walk(path):
         basename = os.path.basename(root)
-        tidydirs = [direct for direct in dirs if 'StitchedImages' not in direct]
+        tidydirs = [direct for direct in sorted(dirs) if 'StitchedImages' not in direct]
         if basename in channels:
             channel = os.path.basename(root)
             if stitchtype == 'kinetic':
@@ -766,6 +777,9 @@ def walkAndStitch(path, params, stitchtype = 'kinetic'):
                 for direct in tidydirs:
                     newParams = deepcopy(params)
                     newParams.channel = basename
-                    newParams.root = direct
-                    stitchImage(direct, newParams)
+                    target = os.path.join(root, direct)
+                    newParams.updateRoot(target)
+                    stitchImage(target, newParams)
+            else:
+                raise ValueError('Valid Stich Types are "single" or "kinetic"')
                 
