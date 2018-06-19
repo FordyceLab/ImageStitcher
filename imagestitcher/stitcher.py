@@ -179,8 +179,8 @@ class FileHandler:
     def __init__(self):
         return
 
-
-    def parseKineticFolder(self, paramTemplate, path):
+    @staticmethod
+    def parseKineticFolder(paramTemplate, path):
         """
         I-Python Specific: Parses a folder containing time-series imaging
 
@@ -211,8 +211,8 @@ class FileHandler:
             rasters = rasters.union(FileHandler.makeRasters(pt, exposuresImages, dims).rasters)
         return KineticImaging(path, rasters)
 
-
-    def parseSingleFolder(self, paramTemplate, path):
+    @staticmethod
+    def parseSingleFolder(paramTemplate, path):
         """
         I-Python Specific: Parses a folder containing a single channel of rastered images
         (can contain multiple exposure times) and generates a set of rasters (a RasterSet)
@@ -425,7 +425,7 @@ class Raster:
         return
 
 
-    def exportStitch(self, method = 'cut', outPathName = 'StitchedImages'):
+    def exportStitch(self, method = 'cut', outPathName = 'StitchedImages', manualTarget = None):
         """
         Perform stitching and export raster.
 
@@ -441,8 +441,9 @@ class Raster:
         
         features = [self.params.exposure, self.params.channel, self.params.groupFeature]
         rasterName = 'StitchedImg_{}_{}_{}.tif'.format(*features)
-        
         stitchDir = pathlib.Path(os.path.join(self.params.parent, outPathName))
+        if manualTarget:
+            stitchDir = pathlib.Path(manualTarget)
         stitchDir.mkdir(exist_ok = True)
         outDir = os.path.join(stitchDir, rasterName)
         external.tifffile.imsave(outDir, stitchedRaster)
@@ -747,6 +748,37 @@ def stitchKinetics(path, params):
     k = fh.parseKineticFolder(params, path) #Returns KineticImaging
     k.order()
     k.exportStitch()
+
+
+
+def stitchStandard(path, params, handlesIDs):
+    """
+    Stitch and export a standard curve of rasters at the path with given parameters
+
+    """
+    startmessage = 'Starting Standard Curve Stitch'
+    logging.debug(startmessage)
+
+    glob_pattern = '*_{}*/*/*/'
+
+    r = pathlib.Path(path)
+
+    standards = []
+    for handle, ID in handlesIDs:
+        img_folders = [(ID, i) for i in list(r.glob(glob_pattern.format(handle)))]
+        standards.extend(img_folders)
+    # print (standards)
+    for ident, p in tqdm(dict(standards).items(), desc = 'Stitching Standard'):
+        fh = FileHandler()
+        par = deepcopy(params)
+        par.groupFeature = ident
+        raster = fh.parseSingleFolder(par, p)
+        
+        target = pathlib.Path(os.path.join(r, 'Analysis'))
+        target.mkdir(exist_ok = True)
+        rexport_params = {'manualTarget': target}
+        raster.exportStitchAll(**rexport_params)
+
 
 
 def walkAndStitch(path, params, stitchtype = 'kinetic'):
