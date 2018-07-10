@@ -421,8 +421,7 @@ class Raster:
         #TODO: re-implement overlap stitching method
 
         """
-        
-        return
+        raise NotImplementedError('Overlap Stitch not yet implemented')
 
 
     def exportStitch(self, method = 'cut', outPathName = 'StitchedImages', manualTarget = None):
