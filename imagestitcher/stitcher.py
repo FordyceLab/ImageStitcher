@@ -3,10 +3,10 @@
 # authors           : Daniel Mokhtari
 # credits           : Craig Markin, Polly Fordyce
 # date              : 20180520
-# version update    : 20180520
+# version update    : 20191001
 # version           : 0.1.0
 # usage             : With permission from DM
-# python_version    : 3.6
+# python_version    : 3.7
 
 
 # General Python
@@ -29,7 +29,7 @@ from skimage import io, transform, external
 
 
 class StitchingSettings:
-    channels = {'1pbp', '2bf', '3dapi', '4egfp', '5cy5'}
+    channels = {'1pbp', '2bf', '3dapi', '4egfp', '5cy5', '6mcherry'}
     ffPaths = None
     ffParams = None
     ffImages = None
@@ -145,7 +145,7 @@ class RasterParams:
             (str) source: image source ('ipnb' | 'mm')
             (float) overlap: overlap fraction (e.g., 0.1)
             (int) exposure: exposure time (ms)
-            (str) channel: imaging channel ('1pbp' | '2bf' | '3dapi' | '4egfp' | '5cy5')
+            (str) channel: imaging channel ('1pbp' | '2bf' | '3dapi' | '4egfp' | '5cy5'| '6mcherry')
             (int) setup: setup number (1 | 2 | 3 | 4)
             (int | float | string) groupFeature: feature value for RasterGroup
             (float) rotation: pre-stitch rotation to perform (%)
