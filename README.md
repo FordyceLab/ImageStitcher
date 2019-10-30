@@ -1,4 +1,4 @@
-# ImageStitcher [Reworked, Minimal Testing]
+# ImageStitcher
 !["One Piece at a Time"](/resources/one_piece_at_a_time.png)
 
 ## Overview
