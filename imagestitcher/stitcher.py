@@ -306,7 +306,7 @@ class FileHandler:
         for exp in exposures:
             workingRaster = df.loc[exp]
             xdims = workingRaster['x'].drop_duplicates().size
-            ydims = workingRaster['x'].drop_duplicates().size
+            ydims = workingRaster['y'].drop_duplicates().size
             dims = (xdims, ydims)
             imageRefs[exp] = [i for i in workingRaster[feature].tolist()]
         return (dims, imageRefs) #exposure time: list of image paths
@@ -406,7 +406,7 @@ class Raster:
 
         trimmedTiles = [tile[border, border] for tile in tiles] #Trim
         tileArray = np.asarray(trimmedTiles) #Make ndarray
-        arrangedTiles = np.reshape(tileArray, (self.params.dims[0], self.params.dims[0], retained, retained))
+        arrangedTiles = np.reshape(tileArray, (self.params.dims[0], self.params.dims[1], retained, retained))
         if self.params.acquiOri[0]: #If origin on right, flip horizontally (view returned)
             arrangedTiles = np.flip(arrangedTiles, 0)
         if self.params.acquiOri[1]: #If origin on bottom, flip vertically (view returned)
