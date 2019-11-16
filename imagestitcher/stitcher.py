@@ -335,7 +335,7 @@ class MMFileHandler:
         try:
             ordered_positions = [(p['GridColumnIndex'], p['GridRowIndex']) for p in MMFileHandler.readMMMetaData(p)['summary']['InitialPositionList']]
         except KeyError:
-            ordered_positions = [(p['gridCol'], p['gridRow']) for p in MMFileHandler.readMMMetaData(p)['summary']['StagePositions']]
+            ordered_positions = [(p['gridRow'], p['gridCol']) for p in MMFileHandler.readMMMetaData(p)['summary']['StagePositions']]
 
 
         # Does the key "Inteval_ms" exist?
