@@ -332,7 +332,11 @@ class MMFileHandler:
         md = micromanager_metadata_dict
         summary = md['summary']
         channels = summary['ChNames']
-        ordered_positions = [(p['GridColumnIndex'], p['GridRowIndex']) for p in MMFileHandler.readMMMetaData(p)['summary']['InitialPositionList']]
+        try:
+            ordered_positions = [(p['GridColumnIndex'], p['GridRowIndex']) for p in MMFileHandler.readMMMetaData(p)['summary']['InitialPositionList']]
+        except KeyError:
+            ordered_positions = [(p['gridCol'], p['gridRow']) for p in MMFileHandler.readMMMetaData(p)['summary']['StagePositions']]
+
 
         # Does the key "Inteval_ms" exist?
         if 'Interval_ms' in summary.keys():
