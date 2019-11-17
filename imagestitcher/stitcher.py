@@ -345,8 +345,15 @@ class MMFileHandler:
             fixedIntervalTimes = None
 
         frames = summary['Frames']
-        customTimes_s = [t/1000. for t in summary['CustomIntervals_ms']]
-        delay_times = np.cumsum([t/1000. for t in summary['CustomIntervals_ms']])
+        
+        # handles case of single timepoint
+        if len(summary['CustomIntervals_ms']) == 0:
+            delay_times = [0]
+            customTimes_s = [0]
+        else:
+            delay_times = np.cumsum([t/1000. for t in summary['CustomIntervals_ms']])
+            customTimes_s = [t/1000. for t in summary['CustomIntervals_ms']]
+        
         dims = (summary['Width'], summary['Height'])
         channel_index = md['index_map']['channel']
         position = md['index_map']['position'][0]
