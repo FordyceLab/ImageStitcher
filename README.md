@@ -2,7 +2,7 @@
 !["One Piece at a Time"](/resources/one_piece_at_a_time.png)
 
 ## Overview
-ImageStitcher is a set of classes and functions to stitch (concatenate tiled arrays), flat-field correct, and background-subtract image rasters. It is primarily intended for use with images generated via Fordyce lab RunPack, but is also capable of stitching arbitrary multi-dimensional Micromanager-generated .ome.tif stacks (TODO). Basic logging is provided for convenience.
+ImageStitcher is a set of classes and functions to stitch (concatenate tiled arrays), flat-field correct, and background-subtract image rasters. It is primarily intended for use with images generated via Fordyce lab RunPack, but is also capable of stitching arbitrary multi-dimensional Micromanager-generated .ome.tif stacks. Basic logging is provided for convenience.
 
 ### Architecture
 - **StitchingSettings**: High-level class for management of general stiching settings and flat-field correction images/parameters
