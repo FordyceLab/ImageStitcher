@@ -144,7 +144,7 @@ stitcher.walkAndStitch(multiImagePath, p, stitchtype = 'kinetic')
 
 
 ### b. Micro-Manager .ome.tif stack imaging
-Micro-Manager can export and covert between flat and stacked images. For simplicity, ImageStitcher only supports stitching the stacked .ome.tif Micro-Manager images. If you collected flat rasters, convert them to stacks using Micro-Manager before proceeding.
+Micro-Manager can export and convert between flat and stacked images. For simplicity, ImageStitcher only supports stitching the stacked .ome.tif Micro-Manager images. If you collected flat rasters, convert them to stacks using Micro-Manager before proceeding.
 
 **Structure (all exposure times and channels are stacked)**
 
