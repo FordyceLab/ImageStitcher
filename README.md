@@ -1,4 +1,4 @@
-# Image processing with [ImageStitcher](https://github.com/FordyceLab/ImageStitcher)
+# Image stitching with [ImageStitcher](https://github.com/FordyceLab/ImageStitcher)
 **Fordyce Lab, 2019**
 <br>
 **Author: Daniel Mokhtari**
