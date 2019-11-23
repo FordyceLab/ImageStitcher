@@ -30,13 +30,13 @@ from PIL import Image, ImageSequence
 
 class StitchingSettings:
     channels = {'1pbp', '2bf', '3dapi', '4egfp', '5cy5', '6mcherry'}
-    ffPaths = None
+    ffPaths = {}
     ffParams = None
     ffImages = None
     rasterPattern =  (True, False) # Raster origin. topleft = (0, 1), topright = (1, 0), 
     tileDim = None
 
-    def __init__(self, ffPaths = None, ffParams = None, tileDim = 1024, setupNum = 1):
+    def __init__(self, ffPaths = {}, ffParams = None, tileDim = 1024, setupNum = 1):
         """
         StitchingSettings for general stitching parameters
 
@@ -135,14 +135,13 @@ class StitchingSettings:
 
 
 class RasterParams:
-    def __init__(self, root, source, overlap, setup, 
+    def __init__(self, root, overlap, setup, 
         groupFeature = 0, rotation = 0, autoFF = True):
         """
         Parameters describing a single image raster.
 
         Arguments:
             (str) root: root path
-            (str) source: image source ('ipnb' | 'mm')
             (float) overlap: overlap fraction (e.g., 0.1)
             (int) exposure: exposure time (ms)
             (str) channel: imaging channel ('1pbp' | '2bf' | '3dapi' | '4egfp' | '5cy5'| '6mcherry')
@@ -157,7 +156,6 @@ class RasterParams:
         """
         self.root = root
         self.parent = list(pathlib.Path(root).parents)[0]
-        self.source = source #ipnb or mm
         self.size = deepcopy(StitchingSettings.tileDim)
         self.dims = None
         self.overlap = overlap
@@ -919,7 +917,7 @@ def MMStitchStacks(root, overlap, setup, channelExposureMap, autoFF = False, cha
     size = raster_metadata.dims.unique().tolist()[0][0]
     dims = (max(raster_metadata.x)+1, max(raster_metadata.y)+1)
 
-    params = RasterParams(root, None, overlap, None, None, setup, autoFF = autoFF)
+    params = RasterParams(root, overlap, None, None, setup, autoFF = autoFF)
     params.dims = dims
     params.size = int(size)
 
