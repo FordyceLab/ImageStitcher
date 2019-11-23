@@ -28,7 +28,6 @@ from PIL import Image, ImageSequence
 
 
 
-
 class StitchingSettings:
     channels = {'1pbp', '2bf', '3dapi', '4egfp', '5cy5', '6mcherry'}
     ffPaths = None
@@ -136,7 +135,7 @@ class StitchingSettings:
 
 
 class RasterParams:
-    def __init__(self, root, source, overlap, exposure, channel, setup, 
+    def __init__(self, root, source, overlap, setup, 
         groupFeature = 0, rotation = 0, autoFF = True):
         """
         Parameters describing a single image raster.
@@ -163,8 +162,8 @@ class RasterParams:
         self.dims = None
         self.overlap = overlap
         self.exposure = exposure
-        self.channel = channel
-        self.setup = setup
+        self.channel = None
+        self.setup = None
         self.rotation = rotation
         self.acquiOri = deepcopy(StitchingSettings.rasterPattern)
         self.groupFeature = groupFeature
@@ -909,6 +908,9 @@ def walkAndStitch(path, params, stitchtype = 'kinetic'):
 
 
 def MMStitchStacks(root, overlap, setup, channelExposureMap, autoFF = False, channelRemap = None):
+    """
+
+    """
     raster_metadata = MMFileHandler.parseMMStackedFolder(root, channelExposureMap, remapChannels = channelRemap)
     
     channels = raster_metadata.channel.unique().tolist()
