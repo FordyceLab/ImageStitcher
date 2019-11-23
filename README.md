@@ -9,7 +9,7 @@
 
 
 ## Installation
-This configuration guide assumes that you have (1) installed and configured an anaconda virtual environment with Python3, (2) installed the iPython kernel, and (3) registered your environment with your installation of jupyter. Great online guides to do this can be found with simple google searches [here] (https://www.google.com/search?q=make+conda+environment&oq=make+conda+environment), [here](https://www.google.com/search?q=conda+install+ipython+kernel), and [here] (https://www.google.com/search?q=register+ipython+kernel+jupyter).
+This configuration guide assumes that you have (1) installed and configured an anaconda virtual environment with Python3, (2) installed the iPython kernel, and (3) registered your environment with your installation of jupyter. Great online guides to do this can be found with simple google searches [here](https://www.google.com/search?q=make+conda+environment&oq=make+conda+environment), [here](https://www.google.com/search?q=conda+install+ipython+kernel), and [here](https://www.google.com/search?q=register+ipython+kernel+jupyter).
 
 ### i. Set up and *activate* a Conda virtual environment configured with an iPython kernel registered with Jupyter in a terminal session (complete)
 
@@ -22,7 +22,7 @@ This configuration guide assumes that you have (1) installed and configured an a
 
 ### iii. Launch the example notebook (`ImageStitcher/notebooks/basic_stitcher.ipynb`) from your Jupyter session
 
-
+<br>
 # Usage
 
 ## i. Define stitching settings
@@ -35,8 +35,8 @@ First, we need to define parameters to desribe what the images look like, how th
 setup_eGFP_ffPath = '/Setup2_FF_eGFP_500ms_2x2.tif'
 
 # Flat-field fit parameters {channel_1: {exposure_t_1: (D, m), exposure_t_2: (D, m), ...},
-#							 channel_2: {exposure_t_1: (D, m), exposure_t_2: (D, m), ...}
-#							 }
+#			     channel_2: {exposure_t_1: (D, m), exposure_t_2: (D, m), ...}
+#			     }
 # With empirically fit parameters
 # D = fit dark field value (flat)
 # m = image average of F-D where F = flat-field image
