@@ -20,7 +20,7 @@ This configuration guide assumes that you have (1) installed and configured an a
 3. PIP install the package in place
 	- `$ pip install -e .`
 
-### iii. Launch the example notebook (`ImageStitcher/notebooks/basic_stitcher.ipynb`) from your Jupyter session
+### iii. Launch the [example notebook](notebooks/basic_stitcher.ipynb) from your Jupyter session
 
 <br>
 
