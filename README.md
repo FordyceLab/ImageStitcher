@@ -50,6 +50,7 @@ Note:
 * Exposure times for FF parameters are in *ms*, and must match the target images
 
 <br>
+
 **b. Instantiate a StitchingSettings object**
 
 ```python
@@ -69,6 +70,7 @@ Note:
 * tileDim is the width or height of the target image. ImageStitcher assumes that the images are 
 
 <br>
+
 ## ii. Stitch images
 
 ### a. RunPack imaging
@@ -224,10 +226,6 @@ target_device = 'd1'
 target_channel = '4egfp'
 bg.walkAndBGSubtract(targetRoot, target_device, channel)
 ```
-
-
-
-
 
 ___
 <sup>1</sup> Peng, T., Thorn, K., Schroeder, T. *et al.* A BaSiC tool for background and shading correction of optical microscopy images. *Nat Commun* **8**, 14836 (2017) doi:10.1038/ncomms14836
