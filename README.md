@@ -81,7 +81,7 @@ RunPack derived images are flat rasters (not stacked) with embedded metadata inc
 +-- channel-1
 »	+-- YYYYmmdd-HHMMSS_Description_channel-1
 »		+-- 1-Pos_XXX_YYY_ExposureT-1.tif
-»	+-- 1-Pos_XXX_YYY_ExposureT-1.tif
+»		+-- 1-Pos_XXX_YYY_ExposureT-1.tif
 »		+-- ...
 »		+-- 1-Pos_XXX_YYY_ExposureT-2.tif
 »		+-- 1-Pos_XXX_YYY_ExposureT-2.tif
@@ -94,7 +94,7 @@ RunPack derived images are flat rasters (not stacked) with embedded metadata inc
 »		+-- 1-Pos_XXX_YYY_ExposureT-2.tif
 »		+-- ...
 »		...
-+-- channel_2
++-- channel-2
 »	+-- YYYYmmdd-HHMMSS_Description_channel-2
 »		+-- 1-Pos_XXX_YYY_ExposureT-1.tif
 »		+-- 1-Pos_XXX_YYY_ExposureT-1.tif
@@ -103,8 +103,8 @@ RunPack derived images are flat rasters (not stacked) with embedded metadata inc
 »		+-- 1-Pos_XXX_YYY_ExposureT-2.tif
 »		+-- ...
 »	+-- YYYYmmdd-HHMMSS_Description_channel-2
-»		+-- 1-Pos_XXX_YYY_ExposureTms.tif
-»		+-- 1-Pos_XXX_YYY_ExposureTms.tif
+»		+-- 1-Pos_XXX_YYY_ExposureT-1.tif
+»		+-- 1-Pos_XXX_YYY_ExposureT-1.tif
 »		+-- ...
 »		...
 ...</code>
