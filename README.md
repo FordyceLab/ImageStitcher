@@ -23,6 +23,7 @@ This configuration guide assumes that you have (1) installed and configured an a
 ### iii. Launch the example notebook (`ImageStitcher/notebooks/basic_stitcher.ipynb`) from your Jupyter session
 
 <br>
+
 # Usage
 
 ## i. Define stitching settings
