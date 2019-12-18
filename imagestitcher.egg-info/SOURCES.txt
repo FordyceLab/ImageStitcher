@@ -1,0 +1,9 @@
+README.md
+setup.py
+imagestitcher/__init__.py
+imagestitcher/stitcher.py
+imagestitcher.egg-info/PKG-INFO
+imagestitcher.egg-info/SOURCES.txt
+imagestitcher.egg-info/dependency_links.txt
+imagestitcher.egg-info/requires.txt
+imagestitcher.egg-info/top_level.txt
