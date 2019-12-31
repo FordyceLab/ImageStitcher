@@ -9,7 +9,7 @@
 
 
 ## Installation
-This configuration guide assumes that you have (1) installed and configured an anaconda virtual environment with Python ≥ 3.6), (2) installed the iPython kernel, and (3) registered your environment with your installation of jupyter. Great online guides to do this can be found with simple google searches [here](https://www.google.com/search?q=make+conda+environment&oq=make+conda+environment), [here](https://www.google.com/search?q=conda+install+ipython+kernel), and [here](https://www.google.com/search?q=register+ipython+kernel+jupyter).
+This guide assumes that you have (1) set up a anaconda virtual environment with Python ≥ 3.6), (2) installed the iPython kernel and Jupyter, and (3) registered your environment with your installation of jupyter. Instructions on how to do this can be found [here](https://www.google.com/search?q=make+conda+environment&oq=make+conda+environment), [here](https://www.google.com/search?q=conda+install+ipython+kernel), and [here](https://www.google.com/search?q=register+ipython+kernel+jupyter).
 
 ### i. Activate a Conda virtual environment configured with an iPython kernel registered with Jupyter in a terminal session
 
