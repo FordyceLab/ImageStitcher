@@ -9,15 +9,15 @@
 
 
 ## Installation
-This configuration guide assumes that you have (1) installed and configured an anaconda virtual environment with Python3, (2) installed the iPython kernel, and (3) registered your environment with your installation of jupyter. Great online guides to do this can be found with simple google searches [here](https://www.google.com/search?q=make+conda+environment&oq=make+conda+environment), [here](https://www.google.com/search?q=conda+install+ipython+kernel), and [here](https://www.google.com/search?q=register+ipython+kernel+jupyter).
+This configuration guide assumes that you have (1) installed and configured an anaconda virtual environment with Python ≥ 3.6), (2) installed the iPython kernel, and (3) registered your environment with your installation of jupyter. Great online guides to do this can be found with simple google searches [here](https://www.google.com/search?q=make+conda+environment&oq=make+conda+environment), [here](https://www.google.com/search?q=conda+install+ipython+kernel), and [here](https://www.google.com/search?q=register+ipython+kernel+jupyter).
 
-### i. Set up and *activate* a Conda virtual environment configured with an iPython kernel registered with Jupyter in a terminal session (complete)
+### i. Activate a Conda virtual environment configured with an iPython kernel registered with Jupyter in a terminal session
 
 ### ii. PIP install ImageStitcher
 1. Download the [ImageStitcher](https://github.com/FordyceLab/ImageStitcher) zip (private) from the FordyceLab Github
 2. Change directory to unzipped package path
 	- `$ cd /repo-download-dir`
-3. PIP install the package in place
+3. PIP install the package in place and make editable
 	- `$ pip install -e .`
 
 ### iii. Launch the [example notebook](notebooks/basic_stitcher.ipynb) from your Jupyter session
@@ -118,13 +118,8 @@ RunPack derived images are flat rasters (not stacked) with embedded metadata inc
 ```python
 multiImagePath = '/parent-root' #or higher
 overlap = 0.1
-setup = 2
 
-p = stitcher.RasterParams(multiImagePath,
-                          overlap, 
-                          setup, 
-                          autoFF = True,
-                          stitchtype = 'kinetic')
+p = stitcher.RasterParams(overlap, autoFF = True)
 
 stitcher.walkAndStitch(multiImagePath, p, stitchtype = 'kinetic')
 # Alternate stitchtype = 'single'
@@ -133,9 +128,7 @@ stitcher.walkAndStitch(multiImagePath, p, stitchtype = 'kinetic')
 
 **multiImagePath**: (str | pathlib.Path | path-like object) path to the root of the imaging directory structure
 
-**overlap**: (float) fractional overlap of tiled images (0–1)
-
-**setup**: (int) index of the imaging setup. Dictates the raster origin and pattern
+**overlap**: (float) fractional overlap of tiled images [0–1)
 
 **autoFF**: (bool) flag for automatically applying flat-field corrections, as defined in the stitcher.StitchingSettings
 
@@ -161,11 +154,8 @@ Micro-Manager can export and convert between flat and stacked images. For simpli
 **Usage**
 
 ```python
-overlap = 0.1
-setup = 2
-autoFF = False
-
 root = '/stack-parent'
+overlap = 0.1
 
  # Channel names from MicroManager configuration
 channelExposureMap = {'3-GFP-B': 500, '5------': 100}
@@ -173,20 +163,17 @@ channelExposureMap = {'3-GFP-B': 500, '5------': 100}
 # Remap the names of the channels for saved filenames, if desired
 channelRemap = {'3-GFP-B': '3-GFP-B', '5------': 'Cy5'}
 
-stitcher.MMStitchStacks(root, 
-                        overlap, 
-                        setup, 
+p = stitcher.RasterParams(overlap, autoFF = False)
+stitcher.MMStitchStacks(root,
+                        p,
                         channelExposureMap, 
-                        channelRemap = channelRemap,
-                        autoFF= False
+                        channelRemap = channelRemap
                         )
 ```
 
 **root**: (str | pathlib.Path | path-like object) root of the image stacks
 
-**overlap**: (float) fractional overlap of tiled images (0–1)
-
-**setup**: (int) index of the imaging setup. Dictates the raster origin and pattern
+**overlap**: (float) fractional overlap of tiled images [0–1)
 
 **channelExposureMap**: (dict) Micro-Manager metadata doesn't retain exposure times, so you need to specify these as a dictionary. Note that Micro-Manager also doesn't permit the same channel name to have more than one exposure time per stack, giving rise to the dict structure shown.
 
