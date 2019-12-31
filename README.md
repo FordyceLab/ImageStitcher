@@ -5,7 +5,7 @@
 
 
 ## Purpose
-[ImageStitcher](https://github.com/FordyceLab/ImageStitcher) is a simple Python-based package for flat-field correcting, stitching, and background subtracting rastered image tiles acquired via [MicroManager](https://micro-manager.org/) or [RunPack](https://github.com/FordyceLab/RunPack).
+[ImageStitcher](https://github.com/FordyceLab/ImageStitcher) is a simple package for flat-field correcting, stitching, and background subtracting rastered image tiles acquired via [MicroManager](https://micro-manager.org/) or [RunPack](https://github.com/FordyceLab/RunPack).
 
 
 ## Installation
