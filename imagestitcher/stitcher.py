@@ -3,7 +3,7 @@
 # authors           : Daniel Mokhtari
 # credits           : Craig Markin, Polly Fordyce
 # date              : 20180520
-# version update    : 20191115
+# version update    : 20191230
 # version           : 0.1.0
 # usage             : With permission from DM
 # python_version    : 3.7
@@ -33,18 +33,34 @@ class StitchingSettings:
 	ffPaths = {}
 	ffParams = None
 	ffImages = None
-	rasterPattern =  (True, False) # Raster origin. topleft = (0, 1), topright = (1, 0), 
+	# Raster origin. bottomleft = (0, 1), topright = (1, 0)
+	acquiOri =  (True, False) 
 	tileDim = None
 
 	def __init__(self, ffPaths = {}, ffParams = None, tileDim = 1024, setupNum = 1):
 		"""
-		StitchingSettings for general stitching parameters
+		StitchingSettings for general stitching parameters. Assumes a square image.
+		The raster pattern is always assumed to traverse rows, then columns in a serpentine
+		pattern starting at the specified origin (acquiOri).
 
 		Arguments:
-			(dict) ffPaths:
-			(ffParams) ffParams:
-			(int) tileDim:
-			(int) setupNum:
+			(dict) ffPaths: A dict mapping channel name to flat-field image 
+				(i.e., {'4egfp': setup_3_eGFP_ffPath})
+			(ffParams) ffParams: Channel and exposure time specific flat-field correction
+				parameters of the form 
+					{channel-name_1:
+						{exposure-time_1: (FFDarkValue-c1e1, FFScaleValue-c1e1), 
+						 exposure-time_2: (FFDarkValue-c1e2, FFScaleValue-c1e2), 
+						 ...}, 
+					 channel-name_2: 
+					 	{
+					 	...}
+					 ...}
+			(int) tileDim: Number of pixels defining the width/height of an image tile.
+				Assumes square images.
+
+			(int) setupNum: Index of the setup from which to stitch. Needed to define
+				The origin and direction of the stage rastering.
 
 		Returns:
 			None
@@ -54,9 +70,9 @@ class StitchingSettings:
 		StitchingSettings.ffParams = self.ffParams = ffParams
 		StitchingSettings.tileDim = self.tileDimensions = tileDim
 		if setupNum == 2: 
-			StitchingSettings.rasterPattern = (False, True)
+			StitchingSettings.acquiOri = (False, True)
 		else:
-			StitchingSettings.rasterPattern = (True, False)
+			StitchingSettings.acquiOri = (True, False)
 		self.initializeLogger()
 
 
@@ -135,35 +151,30 @@ class StitchingSettings:
 
 
 class RasterParams:
-	def __init__(self, root, overlap, setup, 
-		groupFeature = 0, rotation = 0, autoFF = True):
+	def __init__(self, overlap, rotation = 0, autoFF = True, groupFeature = 0):
 		"""
 		Parameters describing a single image raster.
 
 		Arguments:
-			(str) root: root path
 			(float) overlap: overlap fraction (e.g., 0.1)
-			(int) exposure: exposure time (ms)
-			(str) channel: imaging channel ('1pbp' | '2bf' | '3dapi' | '4egfp' | '5cy5'| '6mcherry')
-			(int) setup: setup number (1 | 2 | 3 | 4)
-			(int | float | string) groupFeature: feature value for RasterGroup
 			(float) rotation: pre-stitch rotation to perform (%)
 			(bool) autoFF: flag to execute FF correction on stitch, if possible
+			(int | float | string) groupFeature: feature value for RasterGroup
 
 		Returns:
 			None
 
 		"""
-		self.root = root
-		self.parent = list(pathlib.Path(root).parents)[0]
+		self.root = None
+		if self.root:
+			self.parent = list(pathlib.Path(root).parents)[0]
 		self.size = deepcopy(StitchingSettings.tileDim)
 		self.dims = None
 		self.overlap = overlap
 		self.exposure = None
 		self.channel = None
-		self.setup = None
 		self.rotation = rotation
-		self.acquiOri = deepcopy(StitchingSettings.rasterPattern)
+		self.acquiOri = deepcopy(StitchingSettings.acquiOri)
 		self.groupFeature = groupFeature
 		self.autoFF = autoFF
 
@@ -330,9 +341,11 @@ class MMFileHandler:
 		summary = md['summary']
 		channels = summary['ChNames']
 		try:
-			ordered_positions = [(p['GridColumnIndex'], p['GridRowIndex']) for p in MMFileHandler.readMMMetaData(p)['summary']['InitialPositionList']]
+			ordered_positions = [(p['GridColumnIndex'], p['GridRowIndex']) 
+				for p in MMFileHandler.readMMMetaData(p)['summary']['InitialPositionList']]
 		except KeyError:
-			ordered_positions = [(p['gridRow'], p['gridCol']) for p in MMFileHandler.readMMMetaData(p)['summary']['StagePositions']]
+			ordered_positions = [(p['gridRow'], p['gridCol']) 
+				for p in MMFileHandler.readMMMetaData(p)['summary']['StagePositions']]
 
 
 		# Does the key "Inteval_ms" exist?
@@ -356,12 +369,16 @@ class MMFileHandler:
 		position = md['index_map']['position'][0]
 
 
-		baseRecord = {'num_frames_total': frames, 'dims': dims,'position': position, 'x': ordered_positions[position][0], 'y': ordered_positions[position][1]}
+		baseRecord = {
+			'num_frames_total': frames, 'dims': dims,'position': position, 
+			'x': ordered_positions[position][0], 'y': ordered_positions[position][1]
+			}
 
 		records = []
 		for f in range(frames):
 			for c in range(len(channels)):
-				sliceRecord = {'stack_index': f*len(channels)+c, 'channel': channels[c], 'time_interval': customTimes_s[f],'delay_time': delay_times[f]}
+				sliceRecord = {'stack_index': f*len(channels)+c, 'channel': 
+				channels[c], 'time_interval': customTimes_s[f],'delay_time': delay_times[f]}
 				records.append({**sliceRecord, **baseRecord})
 
 		metadata_df = pd.DataFrame(records)
@@ -378,7 +395,8 @@ class MMFileHandler:
 
 	@staticmethod
 	def parseMMStackedFolder(root, channelExposureMap, remapChannels = None):
-		metadata = pd.concat([MMFileHandler.parseStackMD(str(folder)) for folder in pathlib.Path(str(root)).iterdir() if 'tif' in folder.suffix])
+		metadata = pd.concat([MMFileHandler.parseStackMD(str(folder)) 
+			for folder in pathlib.Path(str(root)).iterdir() if 'tif' in folder.suffix])
 		metadata['exp'] = metadata.channel.apply(lambda c: channelExposureMap[c])
 		if remapChannels:
 			metadata['channel'] = metadata.channel.apply(lambda c: remapChannels[c])
@@ -466,8 +484,16 @@ class Raster:
 
 		imsize = self.params.size
 		margin = int(imsize*self.params.overlap/2) #Edge dim to trim
-		retained = imsize-2*margin #Remaining tile dim
-		border = slice(margin,-margin)
+		retained = imsize-2*margin
+
+		if self.params.overlap < 0 or self.params.overlap >= 1:
+			raise ValueError('Overlap must be ≥ 0 and < 1')
+		
+		# Catch no overlap case
+		if margin == 0:
+			border = slice(0, None)
+		else:
+			border = slice(margin,-margin)
 
 		tiles = self.images
 		if (self.params.autoFF 
@@ -477,7 +503,7 @@ class Raster:
 			logging.info('Flat-Field Corrected Image | Ch: {}, Exp: {}'.format(self.params.channel, self.params.exposure))
 
 		trimmedTiles = [tile[border, border] for tile in tiles] #Trim
-		tileArray = np.asarray(trimmedTiles) #Make ndarray
+		tileArray = np.asarray(trimmedTiles)
 		
 		arrangedTiles = np.reshape(tileArray, (self.params.dims[0], self.params.dims[1], retained, retained))
 		if self.params.acquiOri[0]: #If origin on right, flip horizontally (view returned)
@@ -589,7 +615,6 @@ class StackedRaster(Raster):
 			with Image.open(path) as img:
 				data = np.asarray(ImageSequence.Iterator(img)[self.stackIndex])
 			return data
-			# readImage = lambda i: ImageSequence.Iterator()[self.stackIndex]
 
 		images = [readImage(i) for i in self.imageRefs]
 		
@@ -597,8 +622,6 @@ class StackedRaster(Raster):
 			images = [rotateImage(i) for i in images]
 		
 		self.images = images
-
-
 
 
 
@@ -872,10 +895,12 @@ def stitchStandard(path, params, handlesIDs):
 def walkAndStitch(path, params, stitchtype = 'kinetic'):
 	"""
 	Walk a directory structure of identical types (all single acquisitions or all kinetic)
-	and stitch all images beneath.
+	and stitch all images beneath. The folder to stitch must be wrapped in a folder
+	with a name among the channels found in the class variable StitchingSettings.channels. 
+	Ignores folders with the keyword "StitchedImages" in them. 
 
 	Arguments:
-		(RasterParams) params: raster parameters. Exposure time ignored.
+		(RasterParams) params: raster parameters.
 		(str) stitchtype: type of rasters contained ('single' | 'kinetic')
 
 	Returns:
@@ -915,26 +940,24 @@ stitcher.StitchingSettings.channels.update({'new_channel_name'}) \
 
 
 
-def MMStitchStacks(root, overlap, setup, channelExposureMap, autoFF = False, channelRemap = None):
+def MMStitchStacks(path, params, channelExposureMap, channelRemap = None):
 	"""
 
+
 	"""
-	raster_metadata = MMFileHandler.parseMMStackedFolder(root, channelExposureMap, remapChannels = channelRemap)
+
+	raster_metadata = MMFileHandler.parseMMStackedFolder(path, channelExposureMap, remapChannels = channelRemap)
 	
 	channels = raster_metadata.channel.unique().tolist()
 	exposures = raster_metadata.exp.unique().tolist()
 	delay_times = sorted(raster_metadata.delay_time.unique().tolist())
-	size = raster_metadata.dims.unique().tolist()[0][0]
-	dims = (max(raster_metadata.x)+1, max(raster_metadata.y)+1)
-
-	params = RasterParams(root, overlap, None, None, setup, autoFF = autoFF)
-	params.dims = dims
-	params.size = int(size)
+	params.size = raster_metadata.dims.unique().tolist()[0][0]
+	params.dims = (max(raster_metadata.x)+1, max(raster_metadata.y)+1)
 
 	rasters = []
 	for channel in channels:
 			# stitch a set of timepoints
-			for time in tqdm(delay_times, desc = 'Stitching Kinetics | {} | {}'.format(channel, pathlib.Path(root).stem)):
+			for time in tqdm(delay_times, desc = 'Stitching Kinetics | {} | {}'.format(channel, pathlib.Path(path).stem)):
 				if channelRemap:
 					invertedChannelRemap = dict(zip(channelRemap.values(), channelRemap.keys()))
 					exposure = channelExposureMap[invertedChannelRemap[channel]]
@@ -960,7 +983,7 @@ def MMStitchStacks(root, overlap, setup, channelExposureMap, autoFF = False, cha
 				features = [stacked_raster.params.exposure, stacked_raster.params.channel, int(time)]
 				rasterName = 'StitchedImg_{}_{}_{}.tif'.format(*features)
 				
-				stitchDir = pathlib.Path(os.path.join(params.root, pathlib.Path('StitchedImages')))
+				stitchDir = pathlib.Path(os.path.join(path, pathlib.Path('StitchedImages')))
 				stitchDir.mkdir(exist_ok = True)
 				outDir = os.path.join(stitchDir, rasterName)
 				external.tifffile.imsave(outDir, stitchedRaster);
