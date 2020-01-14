@@ -539,9 +539,10 @@ class Raster:
 		
 		features = [self.params.exposure, self.params.channel, self.params.groupFeature]
 		rasterName = 'StitchedImg_{}_{}_{}.tif'.format(*features)
-		stitchDir = pathlib.Path(os.path.join(self.params.parent, outPathName))
 		if manualTarget:
 			stitchDir = pathlib.Path(manualTarget)
+		else:
+			stitchDir = pathlib.Path(os.path.join(self.params.parent, outPathName))
 		stitchDir.mkdir(exist_ok = True)
 		outDir = os.path.join(stitchDir, rasterName)
 		external.tifffile.imsave(outDir, stitchedRaster)
@@ -878,13 +879,17 @@ def stitchStandard(path, params, handlesIDs):
 	for handle, ID in handlesIDs:
 		img_folders = [(ID, i) for i in list(r.glob(glob_pattern.format(handle)))]
 		standards.extend(img_folders)
-	# print (standards)
+
 	for ident, p in tqdm(dict(standards).items(), desc = 'Stitching Standard'):
 		fh = FileHandler()
 		par = deepcopy(params)
+
 		par.groupFeature = ident
+		par.channel = p.parent.name
+
 		raster = fh.parseSingleFolder(par, p)
 		
+
 		target = pathlib.Path(os.path.join(r, 'Analysis'))
 		target.mkdir(exist_ok = True)
 		rexport_params = {'manualTarget': target}
