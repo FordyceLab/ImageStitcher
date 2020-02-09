@@ -3,7 +3,7 @@
 # authors           : Daniel Mokhtari
 # credits           : Craig Markin, Polly Fordyce
 # date              : 20180520
-# version update    : 20191230
+# version update    : 200208
 # version           : 0.1.0
 # usage             : With permission from DM
 # python_version    : 3.7
@@ -29,7 +29,8 @@ from PIL import Image, ImageSequence
 
 
 class StitchingSettings:
-	channels = {'1pbp', '2bf', '3dapi', '4egfp', '5cy5', '6mcherry'}
+	channels = {'1pbp', '2bf', '3dapi', '4egfp', '5cy5', '6mcherry',
+				'pbp', 'bf', 'dapi', 'egfp', 'cy5', 'mcherry', 'yfp'}
 	ffPaths = {}
 	ffParams = None
 	ffImages = None
