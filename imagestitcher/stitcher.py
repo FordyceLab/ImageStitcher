@@ -3,9 +3,8 @@
 # authors           : Daniel Mokhtari
 # credits           : Craig Markin, Polly Fordyce
 # date              : 20180520
-# version update    : 200208
+# version update    : 20200913
 # version           : 0.1.0
-# usage             : With permission from DM
 # python_version    : 3.7
 
 
