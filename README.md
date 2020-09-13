@@ -1,5 +1,5 @@
 # Image stitching with [ImageStitcher](https://github.com/FordyceLab/ImageStitcher)
-**Fordyce Lab, 2019**
+**Fordyce Lab, 2020**
 <br>
 **Author: Daniel Mokhtari**
 
