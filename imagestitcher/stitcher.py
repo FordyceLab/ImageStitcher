@@ -345,7 +345,8 @@ class MMFileHandler:
 			ordered_positions = [(p['GridColumnIndex'], p['GridRowIndex']) 
 				for p in MMFileHandler.readMMMetaData(p)['summary']['InitialPositionList']]
 		except KeyError:
-			ordered_positions = [(p['gridRow'], p['gridCol']) 
+			# ordered_positions = [(p['GridRow'], p['GridCol']) 
+			ordered_positions = [(p['GridCol'],p['GridRow']) 
 				for p in MMFileHandler.readMMMetaData(p)['summary']['StagePositions']]
 
 
