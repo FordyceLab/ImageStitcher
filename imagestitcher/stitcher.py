@@ -1,10 +1,10 @@
 # title             : stitcher.py
 # description       : General-Purpose Rastered Image Stitching
 # authors           : Daniel Mokhtari
-# credits           : Craig Markin, Polly Fordyce
+# credits           : Craig Markin, Polly Fordyce, Peter Suzuki
 # date              : 20180520
-# version update    : 20200913
-# version           : 0.1.0
+# version update    : 20221212 Peter Suzuki 
+# version           : 2.0.0
 # python_version    : 3.7
 
 
@@ -25,6 +25,11 @@ from matplotlib import pyplot as pl
 from skimage import io, transform, external
 from PIL import Image, ImageSequence
 
+# BaSiC FF correction
+from basicpy import BaSiC
+from basicpy import datasets as bdata
+from matplotlib import pyplot as plt
+
 
 
 class StitchingSettings:
@@ -36,8 +41,9 @@ class StitchingSettings:
 	# Raster origin. bottomleft = (0, 1), topright = (1, 0)
 	acquiOri =  (True, False) 
 	tileDim = None
+	ffType = None
 
-	def __init__(self, ffPaths = {}, ffParams = None, tileDim = 1024, setupNum = 1):
+	def __init__(self, ffType = 'standard', ffPaths = {}, ffParams = None, tileDim = 1024, setupNum = 1):
 		"""
 		StitchingSettings for general stitching parameters. Assumes a square image.
 		The raster pattern is always assumed to traverse rows, then columns in a serpentine
@@ -66,6 +72,7 @@ class StitchingSettings:
 			None
 		"""
 		StitchingSettings.ffPaths = self.defineFFPaths(ffPaths)
+		StitchingSettings.ffType = ffType
 		StitchingSettings.ffImages = self.ffImages = self.readFFImages()
 		StitchingSettings.ffParams = self.ffParams = ffParams
 		StitchingSettings.tileDim = self.tileDimensions = tileDim
@@ -90,6 +97,7 @@ class StitchingSettings:
 		result = {}
 		for channel, path in self.ffPaths.items():
 			result[channel] = io.imread(path)
+		print('this is the stitcher in the dropbox')
 		return result
 
 
@@ -151,7 +159,7 @@ class StitchingSettings:
 
 
 class RasterParams:
-	def __init__(self, overlap, rotation = 0, autoFF = True, groupFeature = 0):
+	def __init__(self, overlap, rotation = 0, autoFF = True, groupFeature = 0, FFtype = 'standard'):
 		"""
 		Parameters describing a single image raster.
 
@@ -177,6 +185,7 @@ class RasterParams:
 		self.acquiOri = deepcopy(StitchingSettings.acquiOri)
 		self.groupFeature = groupFeature
 		self.autoFF = autoFF
+		self.FFtype = FFtype
 
 	def updateRoot(self, newroot):
 		self.root = newroot
@@ -446,6 +455,39 @@ class Raster:
 			return result
 		return [ffSubtract(i, ffImage, ffbval, ffscale) for i in self.images]
 
+	
+	
+	def applyFF_BaSiC(self):
+		"""
+		Applies flat-field correction to fetched images using BaSiC. This technique simulates a FF and 
+		dark image based on common shared features across the full raster (e.g. 64 images).
+
+		Implemented in v2.0.0 by Peter Suzuki, Youngbin Lim
+
+		Arguments:
+			None
+
+		Returns:
+			None
+		
+		"""
+
+		# run BaSiC on image array
+		basic = BaSiC(get_darkfield=True, smoothness_flatfield=1)
+
+		imgarray = []
+		for img in self.images:
+			#print(img.shape)
+			imgarray.append(img)
+		images = np.asarray(imgarray)
+
+		basic.fit(images)
+		images_transformed = basic.transform(images)
+
+		# print(images_transformed.shape)
+
+		return images_transformed
+
 
 	def stitch(self, method = 'cut'):
 		"""
@@ -498,14 +540,29 @@ class Raster:
 
 		tiles = self.images
 		if (self.params.autoFF 
+			and StitchingSettings.ffType == 'BaSiC'):
+
+			tiles = self.ffCorrectedImages = self.applyFF_BaSiC()
+			print('completed BaSiC FF correction')
+
+			logging.info('BaSiC Flat-Field Corrected Image | Ch: {}, Exp: {}'.format(self.params.channel, self.params.exposure))
+
+		
+		elif (self.params.autoFF 
 			and self.params.channel in StitchingSettings.ffParams.keys()
 			and self.params.exposure in StitchingSettings.ffParams[self.params.channel]):
+			
 			tiles = self.ffCorrectedImages = self.applyFF()
+			print('completed standard FF correction')
+
 			logging.info('Flat-Field Corrected Image | Ch: {}, Exp: {}'.format(self.params.channel, self.params.exposure))
 
 		trimmedTiles = [tile[border, border] for tile in tiles] #Trim
 		tileArray = np.asarray(trimmedTiles)
 		
+		# print(self.params.dims[0])
+		# print(self.params.dims[1])
+		# print(retained)
 		arrangedTiles = np.reshape(tileArray, (self.params.dims[0], self.params.dims[1], retained, retained))
 		if self.params.acquiOri[0]: #If origin on right, flip horizontally (view returned)
 			arrangedTiles = np.flip(arrangedTiles, 0)
@@ -539,7 +596,11 @@ class Raster:
 		stitchedRaster = self.stitch(method = method)
 		
 		features = [self.params.exposure, self.params.channel, self.params.groupFeature]
+		
+		# if (self.applyFF
+		# 	and self.FFtype)
 		rasterName = 'StitchedImg_{}_{}_{}.tif'.format(*features)
+		
 		if manualTarget:
 			stitchDir = pathlib.Path(manualTarget)
 		else:
@@ -623,6 +684,7 @@ class StackedRaster(Raster):
 		if r:
 			images = [rotateImage(i) for i in images]
 		
+		print("Fetched", images[0].shape)
 		self.images = images
 
 
@@ -846,6 +908,7 @@ def stitchImage(path, params):
 	logging.info(startmessage)
 	fh = FileHandler()
 	raster = fh.parseSingleFolder(params, path)
+	# print("raster dict: ", raster.__dict__)
 	raster.exportStitchAll()
 
 
@@ -932,6 +995,8 @@ def walkAndStitch(path, params, stitchtype = 'kinetic'):
 					newParams.channel = basename
 					target = os.path.join(root, direct)
 					newParams.updateRoot(target)
+					print(target)
+					#print("newParams dict: ", newParams.__dict__)
 					stitchImage(target, newParams)
 			else:
 				raise ValueError('Valid Stich Types are "single" or "kinetic"')
