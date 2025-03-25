@@ -21,8 +21,9 @@ from datetime import datetime
 from tqdm import tqdm
 import numpy as np
 import pandas as pd
+import tifffile
 from matplotlib import pyplot as pl
-from skimage import io, transform, external
+from skimage import io, transform
 from PIL import Image, ImageSequence
 
 
@@ -329,8 +330,8 @@ class MMFileHandler:
 
 	@staticmethod
 	def readMMMetaData(path):
-		fh = external.tifffile.tifffile.FileHandle(path, mode='rb', name=None, offset=None, size=None)
-		md = external.tifffile.tifffile.read_micromanager_metadata(fh)
+		fh = tifffile.tifffile.FileHandle(path, mode='rb', name=None, offset=None, size=None)
+		md = tifffile.tifffile.read_micromanager_metadata(fh)
 		fh.close()
 		return md
 
@@ -546,7 +547,7 @@ class Raster:
 			stitchDir = pathlib.Path(os.path.join(self.params.parent, outPathName))
 		stitchDir.mkdir(exist_ok = True)
 		outDir = os.path.join(stitchDir, rasterName)
-		external.tifffile.imsave(outDir, stitchedRaster)
+		tifffile.imsave(outDir, stitchedRaster)
 		logging.debug('Stitching Complete')
 
 	def __lt__(self, other):
@@ -711,7 +712,7 @@ class KineticImaging(RasterGroup):
 			stitchDir = pathlib.Path(os.path.join(self.root, outPathName))
 			stitchDir.mkdir(exist_ok = True)
 			outDir = os.path.join(stitchDir, rasterName)
-			external.tifffile.imsave(outDir, stitchedRaster)
+			tifffile.imsave(outDir, stitchedRaster)
 
 			mp = {'t': time, 'ch':raster.params.channel, 'ex':raster.params.exposure}
 			logging.debug('Stitch Saved: (Time: {t}, Ch: {ch}, Ex: {ex})'.format(**mp))
@@ -800,7 +801,7 @@ class BackgroundImages:
 		bgsubclipped = np.clip(bgsub, 0, 65535).astype('uint16') 
 		
 		outPath = os.path.join(imgDir.parents[0], '{}{}'.format(prefix, imgDir.name))
-		external.tifffile.imsave(outPath, bgsubclipped)
+		tifffile.imsave(outPath, bgsubclipped)
 
 		
 		logging.debug('Background Subtraction Complete')
@@ -992,4 +993,4 @@ def MMStitchStacks(path, params, channelExposureMap, channelRemap = None):
 				stitchDir = pathlib.Path(os.path.join(path, pathlib.Path('StitchedImages')))
 				stitchDir.mkdir(exist_ok = True)
 				outDir = os.path.join(stitchDir, rasterName)
-				external.tifffile.imsave(outDir, stitchedRaster);
+				tifffile.imsave(outDir, stitchedRaster);
